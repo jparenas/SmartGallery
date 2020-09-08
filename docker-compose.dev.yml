@@ -1,0 +1,62 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:12-alpine
+    networks:
+      - db
+    environment:
+      - POSTGRES_DB=smart_gallery
+      - POSTGRES_USER=smart_gallery
+      - POSTGRES_PASSWORD=smart_gallery_password
+  redis:
+    image: redis:6-alpine
+    networks:
+      - redis
+  web_server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.web_server_dev
+    networks:
+      - db
+      - redis
+      - web_server
+    ports:
+      - 8000:8000
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=smart_gallery
+      - POSTGRES_USER=smart_gallery
+      - POSTGRES_PASSWORD=smart_gallery_password
+      - REDIS_HOST=redis
+    volumes:
+      - "./server:/app"
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.worker
+    networks:
+      - db
+      - redis
+      - web_server
+    command: 'watchmedo shell-command --patterns="*.py" --command=python3 "$${watch_src_path}" .'
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=smart_gallery
+      - POSTGRES_USER=smart_gallery
+      - POSTGRES_PASSWORD=smart_gallery_password
+      - REDIS_HOST=redis
+    volumes:
+      - "./server:/app"
+  front_end:
+    build:
+      context: ./client
+    ports:
+      - 8080:8080
+    volumes:
+      - "./client:/app"
+
+networks:
+  db:
+  redis:
+  web_server:

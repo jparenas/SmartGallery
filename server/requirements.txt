@@ -1,0 +1,6 @@
+Flask
+SQLAlchemy
+redis
+celery
+gunicorn
+watchdog
