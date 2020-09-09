@@ -1,6 +1,10 @@
 Flask
 SQLAlchemy
+flask_sqlalchemy
+flask-login
 redis
 celery
 gunicorn
 watchdog
+python-dotenv
+psycopg2

@@ -1,1 +1,1 @@
-from .web_server import app as web_server_app
+from .web_server import create_app as create_web_server_app

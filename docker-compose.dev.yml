@@ -17,6 +17,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile.web_server_dev
+    restart: unless-stopped
     networks:
       - db
       - redis
@@ -29,6 +30,7 @@ services:
       - POSTGRES_USER=smart_gallery
       - POSTGRES_PASSWORD=smart_gallery_password
       - REDIS_HOST=redis
+      - SECRET_KEY=super_secret_key
     volumes:
       - "./server:/app"
   worker:
@@ -51,10 +53,11 @@ services:
   front_end:
     build:
       context: ./client
+    restart: unless-stopped
     ports:
       - 8080:8080
     volumes:
-      - "./client:/app"
+      - "./client/src:/app/src"
 
 networks:
   db:
