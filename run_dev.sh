@@ -1,0 +1,1 @@
+concurrently --restart-tries 1000 --restart-after 500 --names "docker,web_server,worker,front_end" "docker-compose -f docker-compose.dev.yml up && docker-compose -f docker-compose.dev.yml down" "cd server && python web_server.py" "cd server && python main/worker.py" "cd client && npm run serve"

@@ -14,9 +14,7 @@ services:
     networks:
       - redis
   web_server:
-    build:
-      context: .
-      dockerfile: Dockerfile.web_server
+    build: .
     networks:
       - db
       - redis
@@ -30,9 +28,8 @@ services:
       - POSTGRES_PASSWORD=smart_gallery_password
       - REDIS_HOST=redis
   worker:
-    build:
-      context: ./server
-      dockerfile: Dockerfile.worker
+    build: .
+    command: "python3 main/worker.py"
     networks:
       - db
       - redis

@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 is_production = os.environ.get('FLASK_ENV', 'development') == "production"
 
@@ -12,3 +14,5 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     PASSWORD_HASH = os.environ.get('PASSWORD_HASH', 'pbkdf2:sha256:50000')
+
+    APP_DEV_HOST = os.environ.get('APP_DEV_HOST')

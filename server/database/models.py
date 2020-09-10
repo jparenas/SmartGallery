@@ -1,9 +1,10 @@
 from .database import db
 from sqlalchemy import ForeignKey
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     """Data model for user accounts."""
 
     __tablename__ = 'users'
@@ -17,19 +18,21 @@ class User(db.Model):
         unique=True,
         nullable=False
     )
+    """
     email = db.Column(
         db.String(254),
         index=True,
         unique=True,
         nullable=False
     )
+    """
     password = db.Column(db.String(128), nullable=False)
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password(self.password, password)
+        return check_password_hash(self.password, password)
 
     def __repr__(self):
         return f'<User {self.username}>'
