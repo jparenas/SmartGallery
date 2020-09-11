@@ -5,6 +5,7 @@ import vuetify from './plugins/vuetify'
 import axios from 'axios'
 import 'roboto-fontface/css/roboto/roboto-fontface.css'
 import '@mdi/font/css/materialdesignicons.css'
+import store from './store'
 
 Vue.config.productionTip = false
 
@@ -14,5 +15,6 @@ axios.defaults.withCredentials = true
 new Vue({
   router,
   vuetify,
+  store,
   render: h => h(App)
 }).$mount('#app')

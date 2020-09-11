@@ -1,10 +1,6 @@
 <template>
   <v-app id="app">
-    <div id="nav" v-if="showNavigation">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link> |
-      <router-link to="/login">Login</router-link>
-    </div>
+    <AppNavBar v-if="showNavigation" />
     <v-main>
       <router-view />
     </v-main>
@@ -12,12 +8,28 @@
 </template>
 
 <script lang="ts">
+import AppNavBar from '@/components/AppNavBar.vue'
 import { Component, Vue } from 'vue-property-decorator'
 
-@Component
+@Component({
+  components: {
+    AppNavBar
+  }
+})
 export default class App extends Vue {
-  get showNavigation (): boolean {
+  async mounted(): Promise<void> {
+    if (this.$router.currentRoute.path !== '/login' && !(await this.$store.dispatch('check_log_in'))) {
+      this.$router.push({ path: '/login' })
+    }
+  }
+
+  get showNavigation(): boolean {
     return !(this.$route.meta.hideNavigation === true)
+  }
+
+  async logOut(): Promise<void> {
+    await this.$store.dispatch('log_out')
+    this.$router.push({ path: '/login' })
   }
 }
 </script>

@@ -53,9 +53,33 @@ class Image(db.Model):
         unique=False,
         nullable=False
     )
-    filename = db.Column(
+    original_width = db.Column(
+        db.Integer,
+        index=True,
+        unique=False,
+        nullable=True
+    )
+    original_height = db.Column(
+        db.Integer,
+        index=True,
+        unique=False,
+        nullable=True
+    )
+    original_filename = db.Column(
         db.String(255),
         index=True,
+        unique=False,
+        nullable=False
+    )
+    extension = db.Column(
+        db.String(255),
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    uuid_access_token = db.Column(
+        db.String(36),
+        index=False,
         unique=False,
         nullable=False
     )

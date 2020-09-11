@@ -16,3 +16,11 @@ class Config:
     PASSWORD_HASH = os.environ.get('PASSWORD_HASH', 'pbkdf2:sha256:50000')
 
     APP_DEV_HOST = os.environ.get('APP_DEV_HOST')
+
+    IMAGE_DIRECTORY = os.path.join(os.getcwd(), str(os.environ.get('IMAGE_DIRECTORY'))) if os.environ.get(
+        'IMAGE_DIRECTORY').startswith('.') else os.environ.get('IMAGE_DIRECTORY')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
+    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
+    CELERY_BROKER_URL = CELERY_RESULT_BACKEND
+    WORKER_BACKEND_SERVER = os.environ.get('WORKER_BACKEND_SERVER')

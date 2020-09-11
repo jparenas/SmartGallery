@@ -1,4 +1,5 @@
-from web_server import Config, api_root, root, login_manager, is_production, create_test_data
+from web_server import api_root, root, login_manager, create_test_data
+from config import Config, is_production
 from database import db
 import os
 from flask import Flask, send_from_directory
@@ -11,7 +12,7 @@ def create_app():
     app = Flask(__name__, static_url_path='/',
                 static_folder=os.environ.get('APP_STATIC_DIR', './static'))
 
-    app.config.from_object('web_server.Config')
+    app.config.from_object('config.Config')
 
     cors_resources = {}
     if not is_production:
