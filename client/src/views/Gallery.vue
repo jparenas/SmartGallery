@@ -1,10 +1,29 @@
 <template>
-  <v-container fluid class="pa-0">
+  <v-container fill-height fluid class="pa-0">
     <div class="upload-dropzone" ref="upload-dropzone" />
-    <v-progress-linear v-if="loading" absolute indeterminate />
-    <v-row align="start" class="px-3">
+    <v-progress-linear v-if="loading" absolute indeterminate top />
+    <v-row
+      v-if="images.length > 0"
+      id="gallery"
+      align="start"
+      justify="start"
+      class="px-3"
+      :style="getStyle"
+    >
       <v-col v-for="image in images" :key="image.id">
-        <ImageCard :image="image" />
+        <ImageCard :image="image" @delete="reloadImages" />
+      </v-col>
+    </v-row>
+    <v-row
+      v-if="!loading && images.length === 0"
+      id="gallery"
+      align="center"
+      justify="center"
+      class="px-3"
+      :style="getStyle"
+    >
+      <v-col align-self-center>
+        <span class="font-weight-light text--secondary">No images to show</span>
       </v-col>
     </v-row>
   </v-container>
@@ -125,6 +144,14 @@ export default class Gallery extends Vue {
     this.loading = false
   }
 
+  get getStyle(): string {
+    if (this.loading) {
+      return 'opacity: 50%;'
+    } else {
+      return ''
+    }
+  }
+
   async mounted(): Promise<void> {
     this.hideDropZone()
     this.addDropzoneEvents()
@@ -153,5 +180,9 @@ $colorBlue: #60a7dc;
 
   background: rgba($colorBlue, 0.8);
   border: 11px dashed $colorBlue;
+}
+
+#gallery {
+  transition: opacity 0.3s;
 }
 </style>

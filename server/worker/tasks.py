@@ -22,7 +22,7 @@ def get_image_metadata(self, image_id, uuid_access_token):
     while image is None:
         try:
             image = Image.open(requests.get(
-                f'{Config.WORKER_BACKEND_SERVER}/api/image/original/{image_id}?uuid={quote_plus(uuid_access_token)}', stream=True).raw)
+                f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/original?uuid={quote_plus(uuid_access_token)}', stream=True).raw)
         except requests.exceptions.ConnectionError:
             time.sleep(0.5)
     width, height = image.size
@@ -37,7 +37,7 @@ def get_image_metadata(self, image_id, uuid_access_token):
     image_bytes = image_bytes.getvalue()
     while True:
         try:
-            response = requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/large/{image_id}?uuid={quote_plus(uuid_access_token)}', json={
+            response = requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/large?uuid={quote_plus(uuid_access_token)}', json={
                 'image': base64.b64encode(image_bytes).decode()
             })
             print(response.status_code)
@@ -51,7 +51,7 @@ def get_image_metadata(self, image_id, uuid_access_token):
     image_bytes = image_bytes.getvalue()
     while True:
         try:
-            requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/small/{image_id}?uuid={quote_plus(uuid_access_token)}', json={
+            requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/small?uuid={quote_plus(uuid_access_token)}', json={
                 'image': base64.b64encode(image_bytes).decode()
             })
             break

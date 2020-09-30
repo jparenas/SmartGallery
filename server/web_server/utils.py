@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urljoin
 from flask import request, current_app, safe_join
 from typing import BinaryIO
 from worker import get_image_metadata
+import pathlib
 import os
 import uuid
 
@@ -50,6 +51,18 @@ def handle_image(filename: str, image_stream: BinaryIO, owner_id: int) -> bool:
     # Add image tasks
     get_image_metadata.delay(image.id, image.uuid_access_token)
     return True
+
+
+def check_images():
+    directories = os.listdir(current_app.config.get('IMAGE_DIRECTORY'))
+    ids = set()
+    for image in Image.query.all():
+        ids.add(image.id)
+    
+    for directory in directories:
+        for filename in os.listdir(safe_join(current_app.config.get('IMAGE_DIRECTORY'), directory)):
+            if int(pathlib.Path(filename).stem) not in ids:
+                os.remove(safe_join(current_app.config.get('IMAGE_DIRECTORY'), directory, filename))
 
 
 TEST_USER_USERNAME = 'test'

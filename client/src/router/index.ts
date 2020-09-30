@@ -16,10 +16,21 @@ const routes: Array<RouteConfig> = [
     component: () => import(/* webpackChunkName: "gallery" */ '../views/Gallery.vue')
   },
   {
-    path: '/login',
+    path: '/login/:username?',
     name: 'Login',
     component: () => import(/* webpackChunkName: "login" */ '../views/Login.vue'),
     meta: { hideNavigation: true }
+  },
+  {
+    path: '/sign_up',
+    name: 'Sign Up',
+    component: () => import(/* webpackChunkName: "sign_up" */ '../views/SignUp.vue'),
+    meta: { hideNavigation: true }
+  },
+  {
+    path: '/image/:id',
+    name: 'ImageViewer',
+    component: () => import(/* webpackChunkName: "image_viewer" */ '../views/ImageViewer.vue')
   }
 ]
 

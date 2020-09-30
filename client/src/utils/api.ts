@@ -53,3 +53,13 @@ export interface ImageResponse {
 }
 
 export type ApiImagesResponse = Array<ImageResponse> | ApiError
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ApiDeleteImageRequest {}
+
+interface DeleteImageResponse {
+  success: boolean;
+  username: string;
+}
+
+export type ApiDeleteImageResponse = DeleteImageResponse | ApiError

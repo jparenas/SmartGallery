@@ -18,18 +18,13 @@ import { Component, Vue } from 'vue-property-decorator'
 })
 export default class App extends Vue {
   async mounted(): Promise<void> {
-    if (this.$router.currentRoute.path !== '/login' && !(await this.$store.dispatch('check_log_in'))) {
-      this.$router.push({ path: '/login' })
-    }
+    // if (!this.$router.currentRoute.path.startsWith('/login') && !(await this.$store.dispatch('check_log_in'))) {
+    //   this.$router.push({ path: '/login' })
+    // }
   }
 
   get showNavigation(): boolean {
     return !(this.$route.meta.hideNavigation === true)
-  }
-
-  async logOut(): Promise<void> {
-    await this.$store.dispatch('log_out')
-    this.$router.push({ path: '/login' })
   }
 }
 </script>

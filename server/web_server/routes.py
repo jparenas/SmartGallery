@@ -2,7 +2,7 @@ from flask import current_app, Blueprint, send_from_directory, request, jsonify,
 from flask import json
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.utils import secure_filename
-from database import User, Image
+from database import db, User, Image
 from config import is_production, Config
 from worker.utils import get_celery_queue_items
 from .utils import create_user, is_safe_url, handle_image
@@ -111,8 +111,8 @@ def find_images():
     }, images)))
 
 
-@api_root.route('/api/image/<string:quality>/<int:image_id>', methods=['GET'])
-def get_image(quality: str, image_id: int):
+@api_root.route('/api/image/<int:image_id>/<string:quality>', methods=['GET'])
+def get_image(image_id: int, quality: str):
     quality = quality.lower()
     image = Image.query.get(image_id)
     if image is None:
@@ -132,8 +132,8 @@ def get_image(quality: str, image_id: int):
     return send_file(safe_join(str(current_app.config.get('IMAGE_DIRECTORY')), quality, f"{str(image.id)}.{extension}"), attachment_filename=f"{image.original_filename}.{extension}", mimetype=EXTENSION_TO_MIME_TYPE[extension])
 
 
-@api_root.route('/api/image/<string:quality>/<int:image_id>', methods=['PUT'])
-def add_image_quality(quality: str, image_id: int):
+@api_root.route('/api/image/<int:image_id>/<string:quality>', methods=['PUT'])
+def add_image_quality(image_id: int, quality: str):
     quality = quality.lower()
     if quality == 'original':
         return 'Cannot replace original image', 400
@@ -167,6 +167,21 @@ def upload_image():
             continue
         filename = secure_filename(images[image].filename)
         handle_image(filename, images[image].stream, current_user.id)
+    return jsonify({
+        'success': True
+    })
+
+@api_root.route('/api/image/<int:image_id>', methods=['DELETE'])
+@login_required
+def delete_image(image_id: int):
+    image = Image.query.get(image_id)
+    if image is None:
+        return 'Image not found', 404
+    if image.owner != current_user.id:
+        return 'User not authorized to delete image', 401
+    Image.query.filter_by(id=image_id).delete()
+    db.session.commit()
+    
     return jsonify({
         'success': True
     })

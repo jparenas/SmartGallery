@@ -4,10 +4,10 @@
       <v-col cols="12" sm="8" md="4">
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>Login</v-toolbar-title>
+            <v-toolbar-title>Sign Up</v-toolbar-title>
           </v-toolbar>
           <v-progress-linear v-if="loading" absolute indeterminate />
-          <v-form @submit.prevent="requestLogin">
+          <v-form @submit.prevent="signUp">
             <v-card-text>
               <v-alert v-if="displayError" type="error">
                 {{ errorMessage }}
@@ -31,12 +31,9 @@
               />
             </v-card-text>
             <v-card-actions>
-              <v-btn color="secondary" type="submit" outlined to="/sign_up"
-                >Sign Up</v-btn
-              >
               <v-spacer></v-spacer>
               <v-btn color="primary" type="submit" :disabled="loading"
-                >Login</v-btn
+                >Sign Up</v-btn
               >
             </v-card-actions>
           </v-form>
@@ -49,11 +46,11 @@
 <script lang="ts">
 import axios, { AxiosResponse } from 'axios'
 import { Component, Vue } from 'vue-property-decorator'
-import { ApiLoginRequest, ApiLoginResponse } from '@/utils/api'
+import { ApiSignUpRequest, ApiSignUpResponse } from '@/utils/api'
 
 @Component
-export default class Login extends Vue {
-  username = this.$route.params.username !== undefined ? this.$route.params.username : '';
+export default class SignUp extends Vue {
+  username = '';
   password = '';
   displayError = false;
   errorMessage = '';
@@ -67,9 +64,9 @@ export default class Login extends Vue {
     this.loading = false
   }
 
-  async requestLogin(): Promise<void> {
+  async signUp(): Promise<void> {
     this.loading = true
-    const response = await axios.post<ApiLoginRequest, AxiosResponse<ApiLoginResponse>>('/api/login', {
+    const response = await axios.post<ApiSignUpRequest, AxiosResponse<ApiSignUpResponse>>('/api/sign_up', {
       username: this.username,
       password: this.password
     })
@@ -78,8 +75,7 @@ export default class Login extends Vue {
         this.displayError = true
         this.errorMessage = response.data.error_message
       } else if ('success' in response.data && response.data.success) {
-        this.$store.commit('log_in', this.username)
-        this.$router.push({ path: response.data.next })
+        this.$router.push({ name: 'Login', params: { username: this.username } })
       }
     }
     this.password = ''

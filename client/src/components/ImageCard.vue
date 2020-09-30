@@ -3,10 +3,10 @@
     <v-img
       class="text-right"
       height="200px"
-      :src="`http://localhost:8000/api/image/small/${image.id}`"
+      :src="`http://localhost:8000/api/image/${image.id}/small`"
       contain
     >
-      <v-btn fab small class="ma-2">
+      <v-btn fab small class="ma-2" :to="{ name: 'ImageViewer', params: { id: image.id }}">
         <v-icon>mdi-fullscreen</v-icon>
       </v-btn>
     </v-img>
@@ -37,6 +37,21 @@
             {{ image.original_height }}px
           </div>
         </v-col>
+        <v-col>
+          <v-menu bottom auto offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn icon v-bind="attrs" v-on="on">
+                <v-icon>mdi-dots-horizontal</v-icon>
+              </v-btn>
+            </template>
+
+            <v-list>
+              <v-list-item @click="deleteImage" dense class="px-0 text-center">
+                <v-list-item>Delete</v-list-item>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-col>
       </v-row>
     </v-card-text>
   </v-card>
@@ -44,10 +59,20 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from 'vue-property-decorator'
-import { ImageResponse } from '@/utils/api'
+import { ImageResponse, ApiDeleteImageRequest, ApiDeleteImageResponse } from '@/utils/api'
+import axios, { AxiosResponse } from 'axios'
 
 @Component
 export default class ImageCard extends Vue {
   @Prop() private image!: ImageResponse;
+
+  async deleteImage(): Promise<void> {
+    const response = await axios.delete<ApiDeleteImageRequest, AxiosResponse<ApiDeleteImageResponse>>(`/api/image/${this.image.id}`)
+    if (response.status >= 200 && response.status < 300) {
+      if (!('error' in response.data)) {
+        this.$emit('delete')
+      }
+    }
+  }
 }
 </script>

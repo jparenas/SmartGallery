@@ -40,6 +40,12 @@ import { Component, Vue } from 'vue-property-decorator'
 
 @Component
 export default class AppNavBar extends Vue {
+  async mounted(): Promise<void> {
+    if (!(await this.$store.dispatch('check_log_in'))) {
+      this.$router.push({ path: '/login' })
+    }
+  }
+
   get username(): string {
     return this.$store.state.username
   }

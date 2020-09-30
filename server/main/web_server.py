@@ -1,4 +1,4 @@
-from web_server import api_root, root, login_manager, create_test_data
+from web_server import api_root, root, login_manager, create_test_data, check_images
 from config import Config, is_production
 from database import db
 import os
@@ -28,6 +28,7 @@ def create_app():
         while True:
             try:
                 db.create_all()
+                check_images()
                 break
             except exc.OperationalError as e:
                 print(e)
