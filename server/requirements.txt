@@ -12,3 +12,9 @@ psycopg2
 requests
 numpy
 Pillow
+torch
+torchvision
+transformers
+h5py
+lmdb
+scikit-image

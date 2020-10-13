@@ -1,8 +1,9 @@
+from database.models import ImageObject
 from flask import current_app, Blueprint, send_from_directory, request, jsonify, redirect, url_for, safe_join, send_file
 from flask import json
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.utils import secure_filename
-from database import db, User, Image
+from database import db, User, Image, ImageObject
 from config import is_production, Config
 from worker.utils import get_celery_queue_items
 from .utils import create_user, is_safe_url, handle_image
@@ -102,13 +103,50 @@ def info():
 @login_required
 def find_images():
     images = Image.query.filter_by(owner=current_user.id).all()
-    return jsonify(list(map(lambda image: {
+    def get_image_data(image):
+        objects = ImageObject.query.filter_by(image_id=image.id).all()
+        return {
+            'id': image.id,
+            'owner': User.query.filter_by(id=image.owner).first().username,
+            'original_filename': f'{image.original_filename}.{image.extension}',
+            'original_width': image.original_width,
+            'original_height': image.original_height,
+            'objects': list(map(lambda obj: {
+                "x1": obj.x1,
+                "y1": obj.y1,
+                "x2": obj.x2,
+                "y2": obj.y2,
+                "name": obj.name,
+            }, objects))
+        }
+    return jsonify(list(map(get_image_data, images)))
+
+
+@api_root.route('/api/image/<int:image_id>', methods=['GET'])
+@login_required
+def get_image_details(image_id):
+    image = Image.query.get(image_id)
+
+    if current_user.is_authenticated and image.owner != current_user.id:
+        return 'User not authorized to see image', 401
+
+    objects = ImageObject.query.filter_by(image_id=image.id).all()
+
+    return jsonify({
         'id': image.id,
         'owner': User.query.filter_by(id=image.owner).first().username,
         'original_filename': f'{image.original_filename}.{image.extension}',
         'original_width': image.original_width,
-        'original_height': image.original_height
-    }, images)))
+        'original_height': image.original_height,
+        'description': image.description,
+        'objects': list(map(lambda obj: {
+            "x1": obj.x1,
+            "y1": obj.y1,
+            "x2": obj.x2,
+            "y2": obj.y2,
+            "name": obj.name,
+        }, objects))
+    })
 
 
 @api_root.route('/api/image/<int:image_id>/<string:quality>', methods=['GET'])

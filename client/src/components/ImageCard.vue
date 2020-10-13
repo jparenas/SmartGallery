@@ -37,6 +37,12 @@
             {{ image.original_height }}px
           </div>
         </v-col>
+        <v-col v-if="image.objects">
+          <div>
+            <b>Objects</b><br />
+            {{ image.objects.length }}
+          </div>
+        </v-col>
         <v-col>
           <v-menu bottom auto offset-y>
             <template v-slot:activator="{ on, attrs }">

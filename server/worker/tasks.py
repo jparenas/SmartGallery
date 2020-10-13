@@ -1,23 +1,75 @@
+from flask.helpers import safe_join
 from .celery import worker_celery
+from .predictions import get_image_objects, get_image_description
 from config import Config
-from database import Image as DBImage, db
+from database import Image as DBImage, db, ImageObject
 from PIL import Image
 from urllib.parse import quote_plus
 import requests
 import time
 import io
+import os
 import base64
+import uuid
+import shutil
+
+
+def expand2square(pil_img, background_color='black') -> Image:
+    width, height = pil_img.size
+    if width == height:
+        return pil_img
+    elif width > height:
+        result = Image.new(pil_img.mode, (width, width), background_color)
+        result.paste(pil_img, (0, (width - height) // 2))
+        return result
+    else:
+        result = Image.new(pil_img.mode, (height, height), background_color)
+        result.paste(pil_img, ((height - width) // 2, 0))
+        return result
 
 
 @worker_celery.task(bind=True, ignore_result=True)
 def get_image_annotations(self, image_id, uuid_access_token):
-    print(f'Annotations {image_id}')
-    # time.sleep(60)
+    print(f'Annotations for image: {image_id}')
+    image = None
+    while image is None:
+        try:
+            image = Image.open(requests.get(
+                f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/small?uuid={quote_plus(uuid_access_token)}', stream=True).raw)
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.5)
+    assert(image.width == 320 or image.height == 320)
+    padded_image = expand2square(image)
+    folder_path = safe_join(os.getcwd(), 'tmp', str(uuid.uuid4()))
+    image_path = safe_join(folder_path, 'image.jpg')
+    if not os.path.isdir(os.path.join(os.getcwd(), 'tmp')):
+        os.mkdir(os.path.join(os.getcwd(), 'tmp'))
+    os.mkdir(folder_path)
+    padded_image.save(image_path)
+    objects = get_image_objects(padded_image)
+    print(f"=> {image_id}: Found {len(objects)} objects")
+    w_difference = (padded_image.width - image.width) // 2
+    h_difference = (padded_image.height - image.height) // 2
+    for obj in objects:
+        obj["x1"] = ((obj["x1"] * padded_image.width) - w_difference) / image.width
+        obj["x2"] = ((obj["x2"] * padded_image.width) - w_difference) / image.width
+        obj["y1"] = ((obj["y1"] * padded_image.height) - h_difference) / image.height
+        obj["y2"] = ((obj["y2"] * padded_image.height) - h_difference) / image.height
+        image_object = ImageObject(image_id=image_id, x1=obj["x1"],
+                  y1=obj["y1"], x2=obj["x2"], y2=obj["y2"], name=obj["class_name"])
+        db.session.add(image_object)
+        db.session.commit()
+    description = get_image_description(folder_path)
+    print(f"=> Description for image {image_id}: {description}")
+    shutil.rmtree(folder_path)
+    db_image = DBImage.query.get(image_id)
+    db_image.description = description
+    db.session.commit()
 
 
 @worker_celery.task(bind=True, ignore_result=True)
 def get_image_metadata(self, image_id, uuid_access_token):
-    print(f'Metadata and resizing {image_id}')
+    print(f'Metadata and resizing image: {image_id}')
     image = None
     while image is None:
         try:
@@ -44,8 +96,8 @@ def get_image_metadata(self, image_id, uuid_access_token):
             break
         except requests.exceptions.ConnectionError:
             time.sleep(0.5)
-    print(f'Saved 500x500 thumbnail from {image_id}')
-    image.thumbnail((300, 300), Image.ANTIALIAS)
+    print(f'Saved {image.width}x{image.height} thumbnail from {image_id}')
+    image.thumbnail((320, 320), Image.ANTIALIAS)
     image_bytes = io.BytesIO()
     image.save(image_bytes, format='jpeg')
     image_bytes = image_bytes.getvalue()
@@ -57,6 +109,6 @@ def get_image_metadata(self, image_id, uuid_access_token):
             break
         except requests.exceptions.ConnectionError:
             time.sleep(0.5)
-    print(f'Saved 300x300 thumbnail from {image_id}')
+    print(f'Saved {image.width}x{image.height} thumbnail from {image_id}')
 
     get_image_annotations.delay(image_id, uuid_access_token)

@@ -29,7 +29,7 @@ interface LoginResponse {
 export type ApiLoginResponse = LoginResponse | ApiError
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ApiInfoRequest {}
+export interface ApiInfoRequest { }
 
 interface InfoResponse {
   success: boolean;
@@ -39,7 +39,18 @@ interface InfoResponse {
 export type ApiInfoResponse = InfoResponse | ApiError
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ApiImagesRequest {}
+export interface ApiImageRequest { }
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ApiImagesRequest { }
+
+export interface ImageObject {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  name: string;
+}
 
 export interface ImageResponse {
   id: number;
@@ -50,12 +61,15 @@ export interface ImageResponse {
   original_width?: number;
   // eslint-disable-next-line camelcase
   original_height?: number;
+  objects: Array<ImageObject>
 }
 
 export type ApiImagesResponse = Array<ImageResponse> | ApiError
 
+export type ApiImageResponse = ImageResponse | ApiError
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ApiDeleteImageRequest {}
+export interface ApiDeleteImageRequest { }
 
 interface DeleteImageResponse {
   success: boolean;

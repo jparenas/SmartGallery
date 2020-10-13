@@ -1,8 +1,10 @@
 <template>
-  <v-app id="app">
+  <v-app id="app" class="d-flex flex-column">
     <AppNavBar v-if="showNavigation" />
     <v-main>
-      <router-view />
+      <div class="d-flex fill-height">
+        <router-view class="flex-grow-1" />
+      </div>
     </v-main>
   </v-app>
 </template>

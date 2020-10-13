@@ -77,6 +77,12 @@ class Image(db.Model):
         unique=False,
         nullable=False
     )
+    description = db.Column(
+        db.String(2048),
+        index=True,
+        unique=False,
+        nullable=True
+    )
     uuid_access_token = db.Column(
         db.String(36),
         index=False,
@@ -86,3 +92,48 @@ class Image(db.Model):
 
     def __repr__(self):
         return f'<Image {self.id} {self.owner}>'
+
+class ImageObject(db.Model):
+    __tablename__ = 'objects'
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+    image_id = db.Column(
+        db.Integer,
+        ForeignKey('images.id'),
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    x1 = db.Column(
+        db.Float,
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    y1 = db.Column(
+        db.Float,
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    x2 = db.Column(
+        db.Float,
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    y2 = db.Column(
+        db.Float,
+        index=True,
+        unique=False,
+        nullable=False
+    )
+    name = db.Column(
+        db.String(255),
+        index=True,
+        unique=False,
+        nullable=False
+    )
+
