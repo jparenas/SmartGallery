@@ -1,0 +1,6 @@
+[submodule "server/modules/pytorch-YOLOv4"]
+	path = server/modules/pytorch-YOLOv4
+	url = https://github.com/Tianxiaomo/pytorch-YOLOv4.git
+[submodule "server/modules/ImageCaptioning.pytorch"]
+	path = server/modules/ImageCaptioning.pytorch
+	url = https://github.com/ruotianluo/ImageCaptioning.pytorch.git
