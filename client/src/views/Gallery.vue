@@ -1,17 +1,32 @@
 <template>
   <v-container fill-height fluid class="pa-0">
     <div class="upload-dropzone" ref="upload-dropzone" />
+    <v-expand-transition>
+      <v-toolbar v-show="imageSelected.some(e => e)" color="blue">
+        <v-btn depressed :loading="loadingDeletingImages" @click="resetSelection" class="mr-2">
+          Deselect Images
+        </v-btn>
+        <v-btn depressed :loading="loadingDeletingImages" :disabled="imageSelected.every(e => e)" @click="selectAll">
+          Select All
+        </v-btn>
+        <v-spacer></v-spacer>
+        <v-btn depressed color="error" :loading="loadingDeletingImages" @click="handleDeleteImages">
+          Delete Selected
+        </v-btn>
+      </v-toolbar>
+    </v-expand-transition>
     <v-progress-linear v-if="loading" absolute indeterminate top />
     <v-row
       v-if="images.length > 0"
       id="gallery"
       align="start"
       justify="start"
-      class="px-3"
+      class="px-3 fill-height"
       :style="getStyle"
+      @click.stop.prevent="resetSelection"
     >
-      <v-col v-for="image in images" :key="image.id">
-        <ImageCard :image="image" @delete="reloadImages" />
+      <v-col v-for="(image, i) in images" :key="image.id">
+        <ImageCard :image="image" @delete="reloadImages" :selected="imageSelected[i]" @click="handleImageClick(i)" />
       </v-col>
     </v-row>
     <v-row
@@ -32,7 +47,7 @@
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
 import ImageCard from '@/components/ImageCard.vue'
-import { ApiImagesRequest, ApiImagesResponse, ImageResponse } from '@/utils/api'
+import { ApiImagesRequest, ApiImagesResponse, ImageResponse, ApiDeleteImageRequest, ApiDeleteImageResponse, ApiInfoRequest, ApiInfoResponse } from '@/utils/api'
 import axios, { AxiosResponse } from 'axios'
 
 @Component({
@@ -41,11 +56,16 @@ import axios, { AxiosResponse } from 'axios'
   }
 })
 export default class Gallery extends Vue {
-  loading = false;
+  loading = false
   images: Array<ImageResponse> = []
+  imageSelected: Array<boolean> = []
+  loadingDeletingImages = false;
+  secondClickTimers: Map<number, number> = new Map()
+  infoInterval = 0;
+  lastUpdate = 0;
 
-  displayError = false;
-  errorMessage = '';
+  displayError = false
+  errorMessage = ''
 
   showDropZone(): void {
     const dropzone = this.$refs['upload-dropzone']
@@ -139,6 +159,7 @@ export default class Gallery extends Vue {
         }
       } else {
         this.images = response.data
+        this.resetSelection()
       }
     }
     this.loading = false
@@ -152,15 +173,69 @@ export default class Gallery extends Vue {
     }
   }
 
+  handleImageClick(index: number): void {
+    if (!this.imageSelected[index]) {
+      this.secondClickTimers.set(index, setTimeout(() => {
+        this.secondClickTimers.delete(index)
+      }, 250))
+    } else {
+      if (this.secondClickTimers.has(index)) {
+        this.$router.push({ name: 'ImageViewer', params: { id: this.images[index].id.toString() } })
+      }
+    }
+    this.$set(this.imageSelected, index, !this.imageSelected[index])
+  }
+
+  resetSelection(): void {
+    this.imageSelected = new Array(this.images.length).fill(false)
+    this.secondClickTimers.forEach(timeout => clearTimeout(timeout))
+    this.secondClickTimers.clear()
+  }
+
+  selectAll(): void {
+    this.imageSelected = new Array(this.images.length).fill(true)
+  }
+
+  async handleDeleteImages(): Promise<void> {
+    this.loadingDeletingImages = true
+    const response = await Promise.all(this.imageSelected.map((value, i) => [value, this.images[i].id]).filter(v => v[0]).map(v => v[1]).map(async id => {
+      const response = await axios.delete<ApiDeleteImageRequest, AxiosResponse<ApiDeleteImageResponse>>(`/api/image/${id}`)
+      if (response.status >= 200 && response.status < 300) {
+        return true
+      }
+      return false
+    }))
+    if (!response.every(e => e)) {
+      console.log('Not all images were deleted')
+    }
+    this.loadingDeletingImages = false
+    this.reloadImages()
+  }
+
   async mounted(): Promise<void> {
     this.hideDropZone()
     this.addDropzoneEvents()
 
-    this.reloadImages()
+    // this.reloadImages()
+    this.checkLastUpdate()
+    this.infoInterval = setInterval(this.checkLastUpdate, 3000)
+  }
+
+  async checkLastUpdate(): Promise<void> {
+    const response = await axios.get<ApiInfoRequest, AxiosResponse<ApiInfoResponse>>('/api/info')
+    if (response.status >= 200 && response.status < 300) {
+      if (!('error' in response.data)) {
+        if (this.lastUpdate < response.data.last_update) {
+          this.reloadImages()
+        }
+        this.lastUpdate = response.data.last_update
+      }
+    }
   }
 
   beforeDestroy(): void {
     this.removeDropzoneEvents()
+    clearInterval(this.infoInterval)
   }
 }
 </script>

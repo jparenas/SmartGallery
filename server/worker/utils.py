@@ -1,15 +1,15 @@
-from .celery import worker_celery
+from .tasks import dramatiq
 
 
-def get_celery_queue_items(queue_name='celery'):
+def get_queue_items(queue_name='default'):
     import base64
     import json
 
-    with worker_celery.pool.acquire(block=True) as conn:
-        tasks = conn.default_channel.client.lrange(queue_name, 0, -1)
+    tasks = dramatiq.broker.client.lrange(f'dramatiq:{queue_name}', 0, -1)
 
     decoded_tasks = []
     for task in tasks:
+        print(task)
         j = json.loads(task)
         body = json.loads(base64.b64decode(j['body']))
         decoded_tasks.append(body)

@@ -1,10 +1,11 @@
+from flask_dramatiq import Dramatiq
 from flask.helpers import safe_join
-from .celery import worker_celery
 from .predictions import get_image_objects, get_image_description
 from config import Config
-from database import Image as DBImage, db, ImageObject
+from database import Image as DBImage, db, ImageObject, User
 from PIL import Image
 from urllib.parse import quote_plus
+from datetime import datetime
 import requests
 import time
 import io
@@ -12,6 +13,21 @@ import os
 import base64
 import uuid
 import shutil
+
+dramatiq = Dramatiq()
+
+def getImage(image_id: str, access_token: str, quality: str) -> Image: 
+    image = None
+    while image is None:
+        try:
+            response = requests.get(
+                f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/{quality}?uuid={quote_plus(access_token)}', stream=True)
+            if response.status_code >= 400 and response.status_code < 500:
+                raise requests.exceptions.HTTPError()
+            image = Image.open(response.raw)
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.5)
+    return image
 
 
 def expand2square(pil_img, background_color='black') -> Image:
@@ -28,16 +44,13 @@ def expand2square(pil_img, background_color='black') -> Image:
         return result
 
 
-@worker_celery.task(bind=True, ignore_result=True)
-def get_image_annotations(self, image_id, uuid_access_token):
+@dramatiq.actor
+def get_image_annotations(image_id, access_token):
     print(f'Annotations for image: {image_id}')
-    image = None
-    while image is None:
-        try:
-            image = Image.open(requests.get(
-                f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/small?uuid={quote_plus(uuid_access_token)}', stream=True).raw)
-        except requests.exceptions.ConnectionError:
-            time.sleep(0.5)
+    try:
+        image = getImage(image_id, access_token, 'small')
+    except requests.exceptions.HTTPError: 
+        return
     assert(image.width == 320 or image.height == 320)
     padded_image = expand2square(image)
     folder_path = safe_join(os.getcwd(), 'tmp', str(uuid.uuid4()))
@@ -63,52 +76,51 @@ def get_image_annotations(self, image_id, uuid_access_token):
     print(f"=> Description for image {image_id}: {description}")
     shutil.rmtree(folder_path)
     db_image = DBImage.query.get(image_id)
-    db_image.description = description
-    db.session.commit()
+    if db_image:
+        db_image.description = description
+        user = User.query.get(db_image.owner)
+        if user:
+            user.last_update = datetime.now()
+        db.session.commit()
 
 
-@worker_celery.task(bind=True, ignore_result=True)
-def get_image_metadata(self, image_id, uuid_access_token):
+@dramatiq.actor
+def get_image_metadata(image_id, access_token):
+    def putImage(quality: str, image: bytes) -> None:
+        while True:
+            try:
+                response = requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/{quality}?uuid={quote_plus(access_token)}', json={
+                    'image': base64.b64encode(image).decode()
+                })
+                print(response.status_code)
+                break
+            except requests.exceptions.ConnectionError:
+                time.sleep(0.5)
     print(f'Metadata and resizing image: {image_id}')
-    image = None
-    while image is None:
-        try:
-            image = Image.open(requests.get(
-                f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/original?uuid={quote_plus(uuid_access_token)}', stream=True).raw)
-        except requests.exceptions.ConnectionError:
-            time.sleep(0.5)
+    try:
+        image = getImage(image_id, access_token, 'original')
+    except requests.exceptions.HTTPError:
+        return
     width, height = image.size
     image_dao = DBImage.query.get(image_id)
     image_dao.original_width = width
     image_dao.original_height = height
+    user = User.query.get(image_dao.owner)
+    if user:
+        user.last_update = datetime.now()
     db.session.commit()
     print(f'Image width and height: {width} {height}')
     image.thumbnail((500, 500), Image.ANTIALIAS)
     image_bytes = io.BytesIO()
     image.save(image_bytes, format='jpeg')
     image_bytes = image_bytes.getvalue()
-    while True:
-        try:
-            response = requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/large?uuid={quote_plus(uuid_access_token)}', json={
-                'image': base64.b64encode(image_bytes).decode()
-            })
-            print(response.status_code)
-            break
-        except requests.exceptions.ConnectionError:
-            time.sleep(0.5)
+    putImage('large', image_bytes)
     print(f'Saved {image.width}x{image.height} thumbnail from {image_id}')
     image.thumbnail((320, 320), Image.ANTIALIAS)
     image_bytes = io.BytesIO()
     image.save(image_bytes, format='jpeg')
     image_bytes = image_bytes.getvalue()
-    while True:
-        try:
-            requests.put(f'{Config.WORKER_BACKEND_SERVER}/api/image/{image_id}/small?uuid={quote_plus(uuid_access_token)}', json={
-                'image': base64.b64encode(image_bytes).decode()
-            })
-            break
-        except requests.exceptions.ConnectionError:
-            time.sleep(0.5)
+    putImage('small', image_bytes)
     print(f'Saved {image.width}x{image.height} thumbnail from {image_id}')
 
-    get_image_annotations.delay(image_id, uuid_access_token)
+    get_image_annotations.send(image_id, access_token)

@@ -4,7 +4,8 @@ flask_sqlalchemy
 flask-login
 flask-cors
 redis
-celery
+dramatiq
+flask-dramatiq
 gunicorn
 watchdog
 python-dotenv

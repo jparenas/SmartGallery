@@ -5,7 +5,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.utils import secure_filename
 from database import db, User, Image, ImageObject
 from config import is_production, Config
-from worker.utils import get_celery_queue_items
+from worker.utils import get_queue_items
 from .utils import create_user, is_safe_url, handle_image
 import os
 import io
@@ -88,10 +88,12 @@ def logout():
 @login_required
 def info():
     if current_user.is_authenticated:
+        user = User.query.get(current_user.id)
         return jsonify({
             'success': True,
-            'username': User.query.filter_by(id=current_user.id).first().username,
-            'tasks': get_celery_queue_items('celery')
+            'username': user.username,
+            'last_update': int(user.last_update.timestamp()),
+            'tasks': get_queue_items()
         })
     else:
         return jsonify({

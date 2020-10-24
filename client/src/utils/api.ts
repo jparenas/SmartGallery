@@ -34,6 +34,8 @@ export interface ApiInfoRequest { }
 interface InfoResponse {
   success: boolean;
   username: string;
+  // eslint-disable-next-line camelcase
+  last_update: number;
 }
 
 export type ApiInfoResponse = InfoResponse | ApiError

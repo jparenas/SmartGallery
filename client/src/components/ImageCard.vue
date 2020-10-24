@@ -1,14 +1,34 @@
 <template>
-  <v-card class="mx-auto" max-width="400">
+  <v-card :class="classes" max-width="400" @click.native.stop.prevent="$emit('click', arguments[0])">
     <v-img
       class="text-right"
-      height="200px"
+      height="250px"
       :src="`http://localhost:8000/api/image/${image.id}/small`"
-      contain
     >
-      <v-btn fab small class="ma-2" :to="{ name: 'ImageViewer', params: { id: image.id }}">
-        <v-icon>mdi-fullscreen</v-icon>
-      </v-btn>
+      <v-row justify="end" no-gutters class="mx-1 my-1">
+        <v-col>
+          <v-btn fab small :to="{ name: 'ImageViewer', params: { id: image.id }}">
+            <v-icon>mdi-fullscreen</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
+      <v-row justify="end" no-gutters class="mx-1">
+        <v-col>
+          <v-menu bottom auto offset-y>
+            <template v-slot:activator="{ on, attrs }">
+              <v-btn fab small v-bind="attrs" v-on="on">
+                <v-icon>mdi-dots-horizontal</v-icon>
+              </v-btn>
+            </template>
+
+            <v-list>
+              <v-list-item @click="deleteImage" dense class="px-0 text-center">
+                <v-list-item>Delete</v-list-item>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </v-col>
+      </v-row>
     </v-img>
 
     <v-card-text class="text--primary">
@@ -43,21 +63,6 @@
             {{ image.objects.length }}
           </div>
         </v-col>
-        <v-col>
-          <v-menu bottom auto offset-y>
-            <template v-slot:activator="{ on, attrs }">
-              <v-btn icon v-bind="attrs" v-on="on">
-                <v-icon>mdi-dots-horizontal</v-icon>
-              </v-btn>
-            </template>
-
-            <v-list>
-              <v-list-item @click="deleteImage" dense class="px-0 text-center">
-                <v-list-item>Delete</v-list-item>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </v-col>
       </v-row>
     </v-card-text>
   </v-card>
@@ -71,6 +76,7 @@ import axios, { AxiosResponse } from 'axios'
 @Component
 export default class ImageCard extends Vue {
   @Prop() private image!: ImageResponse;
+  @Prop() private selected!: boolean;
 
   async deleteImage(): Promise<void> {
     const response = await axios.delete<ApiDeleteImageRequest, AxiosResponse<ApiDeleteImageResponse>>(`/api/image/${this.image.id}`)
@@ -80,5 +86,21 @@ export default class ImageCard extends Vue {
       }
     }
   }
+
+  get classes(): Record<string, boolean> {
+    return {
+      'mx-auto': true,
+      selected: this.selected
+    }
+  }
 }
 </script>
+
+<style lang="scss" scoped>
+@import '~vuetify/src/styles/styles.sass';
+
+.selected {
+  background: map-get($blue, 'lighten-1') !important;
+  outline: 4px solid map-get($blue, 'darken-1') !important;
+}
+</style>

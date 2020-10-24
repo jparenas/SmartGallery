@@ -21,6 +21,6 @@ class Config:
         'IMAGE_DIRECTORY').startswith('.') else os.environ.get('IMAGE_DIRECTORY')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
-    CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND')
-    CELERY_BROKER_URL = CELERY_RESULT_BACKEND
+    DRAMATIQ_BROKER = 'dramatiq.brokers.redis:RedisBroker'
+    DRAMATIQ_BROKER_URL = os.environ.get('DRAMATIQ_BROKER_URL')
     WORKER_BACKEND_SERVER = os.environ.get('WORKER_BACKEND_SERVER')

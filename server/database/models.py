@@ -27,6 +27,10 @@ class User(UserMixin, db.Model):
     )
     """
     password = db.Column(db.String(128), nullable=False)
+    last_update = db.Column(
+        db.DateTime,
+        nullable=False
+    )
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -48,7 +52,7 @@ class Image(db.Model):
     )
     owner = db.Column(
         db.Integer,
-        ForeignKey('users.id'),
+        ForeignKey('users.id', ondelete='CASCADE'),
         index=True,
         unique=False,
         nullable=False
@@ -101,7 +105,7 @@ class ImageObject(db.Model):
     )
     image_id = db.Column(
         db.Integer,
-        ForeignKey('images.id'),
+        ForeignKey('images.id', ondelete='CASCADE'),
         index=True,
         unique=False,
         nullable=False

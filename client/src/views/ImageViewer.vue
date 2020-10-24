@@ -40,7 +40,7 @@
     <v-row v-if="!loading" justify="center" class="flex-grow-1">
       <v-col ref="image_container" class="ma-4 pa-0 relative">
         <div v-if="imageLoaded" class="boxes-container" :style="overlayStyle">
-          <BoundingBox :display="showObjects || showSpecificObject[i]" :obj="obj" :image_height="imageHeight" :image_width="imageWidth" v-for="(obj, i) in image.objects" :key="i" />
+          <BoundingBox :display="(showObjects && !showSpecificObject.some(e => e)) || showSpecificObject[i]" :obj="obj" :image_height="imageHeight" :image_width="imageWidth" v-for="(obj, i) in image.objects" :key="i" />
         </div>
         <img ref="image" @load="imageDidLoad" :src="`http://localhost:8000/api/image/${id}/original`" class="pa-0 image">
       </v-col>
@@ -74,7 +74,6 @@ export default class ImageViewer extends Vue {
     if (response.status >= 200 && response.status < 300) {
       if (!('error' in response.data)) {
         this.image = response.data
-        console.log(this.image)
         this.showSpecificObject = new Array(this.image.objects.length).fill(false)
       }
     }

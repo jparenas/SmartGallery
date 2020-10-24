@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urljoin
 from flask import request, current_app, safe_join
 from typing import BinaryIO
 from worker import get_image_metadata
+from datetime import datetime
 import pathlib
 import os
 import uuid
@@ -25,6 +26,7 @@ def create_user(username: str, password: str):
         }
     new_user = User(
         username=username,
+        last_update=datetime.now()
     )
     new_user.set_password(password)
     db.session.add(new_user)
@@ -42,6 +44,9 @@ def handle_image(filename: str, image_stream: BinaryIO, owner_id: int) -> bool:
     image = Image(owner=owner_id, original_filename=filename,
                   extension=extension, uuid_access_token=str(uuid.uuid4()))
     db.session.add(image)
+    user = User.query.get(owner_id)
+    if user:
+        user.last_update = datetime.now()
     db.session.commit()
     if not os.path.isdir(safe_join(current_app.config.get('IMAGE_DIRECTORY'), 'original')):
         os.makedirs(safe_join(current_app.config.get(
@@ -49,7 +54,7 @@ def handle_image(filename: str, image_stream: BinaryIO, owner_id: int) -> bool:
     with open(safe_join(current_app.config.get('IMAGE_DIRECTORY'), 'original', f"{image.id}.{extension}"), 'wb') as f:
         f.write(image_stream.read())
     # Add image tasks
-    get_image_metadata.delay(image.id, image.uuid_access_token)
+    get_image_metadata.send(image.id, image.uuid_access_token)
     return True
 
 
